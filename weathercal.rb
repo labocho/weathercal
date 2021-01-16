@@ -4,6 +4,7 @@ require "icalendar"
 require "aws-sdk-s3"
 require "stringio"
 
+DEBUG = !ENV["DEBUG"].nil?
 BUCKET_NAME = ENV.fetch("BUCKET_NAME")
 WEATHER_TEXT = {
   "晴れ" => "☀",
@@ -35,6 +36,13 @@ def s3
 end
 
 def save(key, body_as_string)
+  if DEBUG
+    warn "-" * 40
+    warn key
+    warn "-" * 40
+    warn body_as_string
+    return
+  end
   s3.put_object(
     acl: "public-read",
     body: StringIO.new(body_as_string),
@@ -49,6 +57,7 @@ def fetch
 end
 
 def weather_text(s)
+  s = s.dup
   WEATHER_TEXT.each {|a, b| s.gsub!(a, b) }
   s
 end
@@ -81,17 +90,19 @@ def update(event:, context:)
     data[:forecasts] = tds[1..].zip(days).map do |(td, day)|
       forecast = {}
       forecast[:day] = day
-      forecast[:weather] = weather_text(td.css("img").first["alt"])
+      forecast[:weather] = td.css("img").first["alt"]
       forecast[:mintemp] = td.css(".mintemp").first.inner_text.strip.to_i
       forecast[:maxtemp] = td.css(".maxtemp").first.inner_text.strip.to_i
       forecast
     end
 
     cal = Icalendar::Calendar.new
+    cal.x_wr_calname = "週間天気予報 (#{data[:location]})"
     data[:forecasts].each do |f|
       cal.event do |e|
         e.dtstart = Icalendar::Values::Date.new(f[:day])
-        e.summary = "#{f[:weather]} #{f[:mintemp]}℃/#{f[:maxtemp]}℃"
+        e.summary = weather_text(f[:weather])
+        e.description = "#{f[:mintemp]}℃/#{f[:maxtemp]}℃ #{f[:weather]}"
       end
     end
     save("#{data[:location]}.ical", cal.to_ical)
