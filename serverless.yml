@@ -136,6 +136,15 @@ resources:
         WebsiteConfiguration:
           ErrorDocument: "error.html"
           IndexDocument: "index.html"
+    CronEvent:
+      DependsOn: [UpdateLambdaFunction]
+      Type: AWS::Events::Rule
+      Properties:
+        ScheduleExpression: "cron(30 2,8 * * ? *)" # 11時と17時
+        Targets:
+          - Arn:
+              Fn::GetAtt: [UpdateLambdaFunction, Arn]
+            Id: weathercal-update
 
 plugins:
   - serverless-ruby-layer
