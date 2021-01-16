@@ -1,0 +1,9 @@
+{
+  "name": "weathercal",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {},
+  "devDependencies": {
+    "serverless-ruby-layer": "^1.4.0"
+  }
+}
