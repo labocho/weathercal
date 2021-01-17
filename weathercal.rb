@@ -20,10 +20,7 @@ WEATHER_TEXT = {
   "止む" => "☁",
 }
 
-INDEX_HTML = <<~HTML
-<!doctype html>
-<title>weathercal</title>
-HTML
+INDEX_HTML = File.read("index.html")
 
 ERROR_HTML = <<~HTML
 <!doctype html>
