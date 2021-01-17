@@ -30,14 +30,14 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action: ['s3:ListBucket']
-      Resource: "arn:aws:s3:::weathercal"
+      Resource: "arn:aws:s3:::weathercal.penguinlab.jp"
     - Effect: Allow
       Action:
         - s3:PutObject
         - s3:PutObjectAcl
-      Resource: "arn:aws:s3:::weathercal/*"
+      Resource: "arn:aws:s3:::weathercal.penguinlab.jp/*"
   environment:
-    BUCKET_NAME: weathercal
+    BUCKET_NAME: weathercal.penguinlab.jp
 
 # you can overwrite defaults here
 #  stage: dev
@@ -133,7 +133,7 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         AccessControl: PublicRead
-        BucketName: weathercal
+        BucketName: weathercal.penguinlab.jp
         WebsiteConfiguration:
           ErrorDocument: "error.html"
           IndexDocument: "index.html"
