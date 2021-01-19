@@ -102,7 +102,8 @@ def update(event:, context:)
         e.description = "#{f[:mintemp]}℃/#{f[:maxtemp]}℃ #{f[:weather]}"
       end
     end
-    save("#{data[:location]}.ical", cal.to_ical)
+    save("#{data[:location]}.ics", cal.to_ical)
+    save("#{data[:location]}.ical", cal.to_ical) # 最初このURLで提供していたため一応作成
   end
 
   {
