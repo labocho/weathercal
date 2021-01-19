@@ -146,6 +146,16 @@ resources:
           - Arn:
               Fn::GetAtt: [UpdateLambdaFunction, Arn]
             Id: weathercal-update
+    CronEventPermission:
+      DependsOn: [UpdateLambdaFunction, CronEvent]
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:InvokeFunction
+        FunctionName:
+          Fn::GetAtt: [UpdateLambdaFunction, Arn]
+        Principal: events.amazonaws.com
+        SourceArn:
+          Fn::GetAtt: [CronEvent, Arn]
 
 plugins:
   - serverless-ruby-layer
