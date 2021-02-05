@@ -1,5 +1,5 @@
 require "open-uri"
-require "nokogiri"
+require "nokogumbo"
 require "icalendar"
 require "aws-sdk-s3"
 require "stringio"
@@ -48,9 +48,9 @@ def save(key, body_as_string)
   )
 end
 
-def fetch
-  html = OpenURI.open_uri("http://www.jma.go.jp/jp/week/", &:read)
-  Nokogiri.parse(html)
+def fetch(url)
+  html = OpenURI.open_uri(url, &:read)
+  Nokogiri.HTML5(html)
 end
 
 def weather_text(s)
@@ -59,14 +59,9 @@ def weather_text(s)
   s
 end
 
-def update(event:, context:)
-  save("index.html", INDEX_HTML)
-  save("error.html", ERROR_HTML)
-
-  today = Time.now.getlocal("+09:00").to_date
-  doc = fetch
-  forecastlist_trs = doc.css("table.forecastlist tr")
-  first_day = forecastlist_trs[0].css("th")[1].inner_text.to_i
+def parse_and_save_ical(doc, today)
+  forecast_top_list_trs = doc.css("table.forecast-top > tbody > tr")
+  first_day = forecast_top_list_trs[0].css("th")[1].inner_text.to_i
   first_date = case first_day
   when today.day
     today
@@ -78,20 +73,26 @@ def update(event:, context:)
 
   days = (first_date..(first_date + 6)).to_a
 
-  forecastlist_trs[1..].each do |tr|
-    next if tr.css(".forecast").empty?
+  forecast_top_list_trs[1..].each_slice(5) do |trs|
+    weather_tr, rain_tr, reliability_tr, temp_max_tr, temp_min_tr = trs
+    next unless rain_tr&.text["降水確率"]
 
     data = {}
-    tds = tr.css("td").to_a
-    data[:location] = tds.first.inner_text.strip
-    data[:forecasts] = tds[1..].zip(days).map do |(td, day)|
+    data[:location] = temp_max_tr.css(".cityname").inner_text.strip
+    data[:forecasts] = days.zip(
+      weather_tr.css(".for").to_a,
+      rain_tr.css(".for").to_a,
+      temp_max_tr.css(".for").to_a,
+      temp_min_tr.css(".for").to_a,
+    ).map {|(day, weather, rain, temp_max, temp_min)|
       forecast = {}
       forecast[:day] = day
-      forecast[:weather] = td.css("img").first["alt"]
-      forecast[:mintemp] = td.css(".mintemp").first.inner_text.strip.to_i
-      forecast[:maxtemp] = td.css(".maxtemp").first.inner_text.strip.to_i
+      forecast[:weather] = weather.css("img").first["alt"]
+      forecast[:mintemp] = temp_min.css(".mintemp").first.inner_text.strip.to_i
+      forecast[:maxtemp] = temp_max.css(".maxtemp").first.inner_text.strip.to_i
+      forecast[:rain] = rain.css(".pop").first.inner_text.strip.split("/").map {|s| "#{s}%" }.join("/")
       forecast
-    end
+    }
 
     cal = Icalendar::Calendar.new
     cal.x_wr_calname = "週間天気予報 (#{data[:location]})"
@@ -99,11 +100,23 @@ def update(event:, context:)
       cal.event do |e|
         e.dtstart = Icalendar::Values::Date.new(f[:day])
         e.summary = weather_text(f[:weather])
-        e.description = "#{f[:mintemp]}℃/#{f[:maxtemp]}℃ #{f[:weather]}"
+        e.description = "#{f[:mintemp]}℃/#{f[:maxtemp]}℃ #{f[:weather]} (☂#{f[:rain]})"
       end
     end
     save("#{data[:location]}.ics", cal.to_ical)
     save("#{data[:location]}.ical", cal.to_ical) # 最初このURLで提供していたため一応作成
+  end
+end
+
+def update(event:, context:)
+  save("index.html", INDEX_HTML)
+  save("error.html", ERROR_HTML)
+
+  today = Time.now.getlocal("+09:00").to_date
+  (301..356).each do |num|
+    url = "http://www.jma.go.jp/jp/week/#{num}.html"
+    doc = fetch(url)
+    parse_and_save_ical(doc, today)
   end
 
   {
@@ -114,5 +127,3 @@ def update(event:, context:)
     }.to_json
   }
 end
-
-
