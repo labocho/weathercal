@@ -3,6 +3,8 @@ require "nokogumbo"
 require "icalendar"
 require "aws-sdk-s3"
 require "stringio"
+require "erb"
+include ERB::Util
 
 DEBUG = !ENV["DEBUG"].nil?
 BUCKET_NAME = ENV.fetch("BUCKET_NAME")
@@ -20,7 +22,7 @@ WEATHER_TEXT = {
   "止む" => "☁",
 }
 
-INDEX_HTML = File.read("index.html")
+INDEX_ERB = ERB.new(File.read("index.html.erb"), trim_mode: "-")
 
 ERROR_HTML = <<~HTML
 <!doctype html>
@@ -60,6 +62,7 @@ def weather_text(s)
 end
 
 def parse_and_save_ical(doc, today)
+  locations = []
   forecast_top_list_trs = doc.css("table.forecast-top > tbody > tr")
   first_day = forecast_top_list_trs[0].css("th")[1].inner_text.to_i
   first_date = case first_day
@@ -103,21 +106,27 @@ def parse_and_save_ical(doc, today)
         e.description = "#{f[:mintemp]}℃/#{f[:maxtemp]}℃ #{f[:weather]} (☂#{f[:rain]})"
       end
     end
+
+    locations << data[:location]
     save("#{data[:location]}.ics", cal.to_ical)
     save("#{data[:location]}.ical", cal.to_ical) # 最初このURLで提供していたため一応作成
   end
+
+  locations
 end
 
 def update(event:, context:)
-  save("index.html", INDEX_HTML)
-  save("error.html", ERROR_HTML)
+  locations = []
 
   today = Time.now.getlocal("+09:00").to_date
   (301..356).each do |num|
     url = "http://www.jma.go.jp/jp/week/#{num}.html"
     doc = fetch(url)
-    parse_and_save_ical(doc, today)
+    locations.concat(parse_and_save_ical(doc, today))
   end
+
+  save("index.html", INDEX_ERB.result(binding))
+  save("error.html", ERROR_HTML)
 
   {
     statusCode: 200,
@@ -127,3 +136,5 @@ def update(event:, context:)
     }.to_json
   }
 end
+
+update(event: nil, context: nil) if DEBUG

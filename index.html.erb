@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>iCal 週間天気予報 (絵文字版)</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+<div class="container">
+  <h1>iCal 週間天気予報 (絵文字版)</h1>
+  <p>iPhone や Google のカレンダーで使える iCal 形式の週間天気予報です。<a href="http://www.jma.go.jp/jp/week/">気象庁の週間天気予報</a>を利用しています。毎日 2 度更新しています。</p>
+  <p>アプリによりますが、こんな感じで表示できます↓</p>
+  <blockquote class="twitter-tweet"><p lang="ja" dir="ltr">気象庁のサイトからとった情報でカレンダー上で天気予報見られるようにしてみた <a href="https://t.co/TVe74Iqhu4">pic.twitter.com/TVe74Iqhu4</a></p>&mdash; labocho (@labocho) <a href="https://twitter.com/labocho/status/1350453243558518788?ref_src=twsrc%5Etfw">January 16, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+  <p>増井敏克さんの<a href="https://weather.masuipeo.com/">iCal週間天気予報</a>を参考にさせていただきました (実装は異なります)。</p>
+  <p>通常は地名をクリック / タップするとカレンダーアプリに追加できます (すこし反応に時間がかかるかも...)。</p>
+  <p>うまく行かない場合は "iCal" のリンクを右クリック/タップ長押しして URL をコピーし、カレンダーアプリでカレンダーを追加してください。</p>
+  <ul>
+    <%- locations.each do |location| -%>
+    <li><a href="webcal://weathercal.penguinlab.jp/<%= u(location) %>.ics"><%= location %></a> (<a href="/<%= u(location) %>.ics">iCal</a>)</li>
+    <%- end -%>
+  </ul>
+  <p>不具合は <a href="https://github.com/labocho/weathercal/issues">GitHub issues</a> でご報告ください。</p>
+</div>
