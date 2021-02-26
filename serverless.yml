@@ -28,15 +28,17 @@ provider:
   region: ap-northeast-1
   stage: production
   # https://www.serverless.com/framework/docs/providers/aws/guide/iam/#:~:text=IAM.%20Every%20AWS%20Lambda%20function%20needs%20permission%20to,Framework%20allows%20you%20to%20modify%20this%20Role
-  iamRoleStatements:
-    - Effect: Allow
-      Action: ['s3:ListBucket']
-      Resource: "arn:aws:s3:::weathercal.penguinlab.jp"
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-        - s3:PutObjectAcl
-      Resource: "arn:aws:s3:::weathercal.penguinlab.jp/*"
+  iam:
+    role:
+      statements:
+      - Effect: Allow
+        Action: ['s3:ListBucket']
+        Resource: "arn:aws:s3:::weathercal.penguinlab.jp"
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+        Resource: "arn:aws:s3:::weathercal.penguinlab.jp/*"
   environment:
     BUCKET_NAME: weathercal.penguinlab.jp
 
