@@ -1,5 +1,4 @@
 require "json"
-require "yaml"
 require "time"
 require "weathercal/reformatter"
 require "icalendar"
@@ -21,7 +20,7 @@ module Weathercal
     }
 
     def weather_codes
-      @weather_codes ||= YAML.load_file("#{__dir__}/../../constants/weather_codes.yml")
+      Weathercal::Updater.weather_codes
     end
 
     def weather_text(code)

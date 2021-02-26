@@ -5,7 +5,6 @@ require "aws-sdk-s3"
 require "stringio"
 require "erb"
 require "weathercal/ical_builder"
-require "yaml"
 
 module Weathercal
   class Updater
@@ -20,9 +19,69 @@ module Weathercal
 
     attr_reader :bucket_name, :debug
 
-    def self.update(bucket_name:, debug: false)
-      new(bucket_name: bucket_name, debug: debug).update
+    class << self
+      def update(bucket_name:, debug: false)
+        new(bucket_name: bucket_name, debug: debug).update
+      end
+
+      def weather_codes
+        @weather_codes ||= fetch_weather_codes
+      end
+
+      def areas
+        @areas ||= fetch_areas
+      end
+
+      def fetch_weather_codes
+        weather_codes = nil
+        url = "https://www.jma.go.jp/bosai/#pattern=forecast&area_type=offices&area_code=011000"
+        doc = fetch_html(url)
+        doc.css("script").each do |script|
+          next unless script.text["Const.TELOPS"]
+          next unless script.text =~ /Const\.TELOPS=(\{.+?\})/
+
+          json = $~.captures[0].gsub(/(\d+):/) { %("#{$1}":) }
+          weather_codes = JSON.parse(json)
+        end
+
+        weather_codes
+      end
+
+      def fetch_areas
+        timestamp = Time.now.getlocal("+09:00").strftime("%Y%m%d%H%M%S")
+        areas = fetch_json("https://www.jma.go.jp/bosai/common/const/area.json?__time__=#{timestamp}")
+        areas
+      end
+
+      def fetch_html(url)
+        logger.debug(type: "fetch_html", url: url)
+        sleep 1
+        html = OpenURI.open_uri(url, &:read)
+        Nokogiri.HTML5(html)
+      end
+
+      def fetch_json(url)
+        logger.debug(type: "fetch_json", url: url)
+        sleep 1
+        json = OpenURI.open_uri(url, &:read)
+        JSON.parse(json)
+      end
+
+      def logger
+        @logger ||= begin
+          logger = Logger.new($stdout)
+          logger.level = Logger::Severity::DEBUG
+          logger.formatter = -> (severity, datetime, _progname, message) {
+            {
+              severity: severity,
+              time: datetime.to_i,
+            }.merge(message).to_json + "\n"
+          }
+          logger
+        end
+      end
     end
+
 
     def initialize(bucket_name:, debug: false)
       @bucket_name = bucket_name
@@ -49,20 +108,6 @@ module Weathercal
       )
     end
 
-    def fetch_html(url)
-      logger.debug(type: "fetch_html", url: url)
-      sleep 1
-      html = OpenURI.open_uri(url, &:read)
-      Nokogiri.HTML5(html)
-    end
-
-    def fetch_json(url)
-      logger.debug(type: "fetch_json", url: url)
-      sleep 1
-      json = OpenURI.open_uri(url, &:read)
-      JSON.parse(json)
-    end
-
     def parse_and_save_ical(json)
       point_names = []
       IcalBuilder.new.build_icals(json) do |cal, point_name|
@@ -73,35 +118,12 @@ module Weathercal
       point_names
     end
 
-    def update_weather_codes
-      weather_codes = nil
-      url = "https://www.jma.go.jp/bosai/#pattern=forecast&area_type=offices&area_code=011000"
-      doc = fetch_html(url)
-      doc.css("script").each do |script|
-        next unless script.text["Const.TELOPS"]
-        next unless script.text =~ /Const\.TELOPS=(\{.+?\})/
-
-        json = $~.captures[0].gsub(/(\d+):/) { %("#{$1}":) }
-        weather_codes = JSON.parse(json)
-      end
-
-      File.write("#{__dir__}/../../constants/weather_codes.yml", weather_codes.to_yaml)
-      weather_codes
-    end
-
-    def update_areas(timestamp)
-      areas = fetch_json("https://www.jma.go.jp/bosai/common/const/area.json?__time__=#{timestamp}")
-      File.write("#{__dir__}/../../constants/areas.yml", areas.to_yaml)
-      areas
-    end
-
     # https://www.jma.go.jp/bosai/forecast/data/forecast/011000.json?__time__=202102240700
     def update
       now = Time.now.getlocal("+09:00")
       timestamp = now.strftime("%Y%m%d%H%M%S")
 
-      update_weather_codes
-      areas = update_areas(timestamp)
+      areas = self.class.areas
       point_names = []
 
       areas["offices"].each_key do |code|
@@ -127,18 +149,16 @@ module Weathercal
       }
     end
 
+    def fetch_json(url)
+      self.class.fetch_json(url)
+    end
+
+    def fetch_html(url)
+      self.class.fetch_html(url)
+    end
+
     def logger
-      @logger ||= begin
-        logger = Logger.new($stdout)
-        logger.level = debug ? Logger::Severity::DEBUG : Logger::Severity::INFO
-        logger.formatter = -> (severity, datetime, _progname, message) {
-          {
-            severity: severity,
-            time: datetime.to_i,
-          }.merge(message).to_json + "\n"
-        }
-        logger
-      end
+      self.class.logger
     end
   end
 end
