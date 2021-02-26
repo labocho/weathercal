@@ -103,6 +103,10 @@ module Weathercal
       point_names = []
 
       areas["offices"].each_key do |code|
+        case code
+        when "014030", "460040" # それぞれ 014100, 460100 に含まれる
+          next
+        end
         url = "https://www.jma.go.jp/bosai/forecast/data/forecast/#{code}.json?__time__=#{timestamp}"
         json = fetch_json(url)
         added = parse_and_save_ical(json)
@@ -116,7 +120,7 @@ module Weathercal
         statusCode: 200,
         body: {
           message: 'Go Serverless v1.0! Your function executed successfully!',
-          input: event
+          input: nil,
         }.to_json
       }
     end

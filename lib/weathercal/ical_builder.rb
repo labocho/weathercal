@@ -41,28 +41,15 @@ module Weathercal
       json[:areas].each do |area|
         data = {}
         data[:location] = area[:point_name]
-        day_temp = area[:day_records].values.map(&:values).flatten.map(&:to_i)
-        day_pops = {}
-
-        area[:per_six_hours_records].each do |time_str, record|
-          time = Time.parse(time_str)
-          am_zero = Time.new(time.year, time.month, time.day, 0, 0, 0, "+09:00")
-          day_pops[am_zero.iso8601] ||= %w(- - - -)
-          day_pops[am_zero.iso8601][time.hour / 6] = record[:pop]
-        end
-
 
         data[:forecasts] = area[:week_records].map do |day_str, weekday_record|
           day = Time.parse(day_str)
           forecast = {}
           forecast[:day] = day.to_date
           forecast[:weather] = weekday_record[:weather_code]
-          forecast[:mintemp] = weekday_record[:temp_min] == "" ? day_temp.min : weekday_record[:temp_min]
-          forecast[:rain] = if day_pops[day_str]
-            day_pops[day_str].map {|pop| "#{pop}%" }.join("/")
-          else
-            "#{weekday_record[:pop]}%"
-          end
+          forecast[:mintemp] = weekday_record[:temp_min] == "" ? nil : weekday_record[:temp_min]
+          forecast[:maxtemp] = weekday_record[:temp_max] == "" ? nil : weekday_record[:temp_max]
+          forecast[:rain] = weekday_record[:pop] == "" ? nil : weekday_record[:pop]
           forecast
         end
 
@@ -72,7 +59,14 @@ module Weathercal
           cal.event do |e|
             e.dtstart = Icalendar::Values::Date.new(f[:day])
             e.summary = weather_emoji(f[:weather])
-            e.description = "#{f[:mintemp]}℃/#{f[:maxtemp]}℃ #{weather_text(f[:weather])} (☂#{f[:rain]})"
+
+            description = []
+            if f[:mintemp] && f[:maxtemp]
+              description << "#{f[:mintemp]}℃/#{f[:maxtemp]}℃"
+            end
+            description << weather_text(f[:weather])
+            description << "(☂#{f[:rain]})"
+            e.description = description.join(" ")
           end
         end
 
