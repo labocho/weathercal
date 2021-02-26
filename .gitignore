@@ -54,3 +54,6 @@ build-iPhoneSimulator/
 
 # package directories
 node_modules
+
+/constants/areas.yml
+/constants/weather_codes.yml

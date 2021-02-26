@@ -11,7 +11,7 @@ module Weathercal
   class Updater
     include ERB::Util
 
-    INDEX_ERB = ERB.new(File.read("index.html.erb"), trim_mode: "-")
+    INDEX_ERB = ERB.new(File.read("#{__dir__}/../../index.html.erb"), trim_mode: "-")
 
     ERROR_HTML = <<~HTML
     <!doctype html>
@@ -51,12 +51,14 @@ module Weathercal
 
     def fetch_html(url)
       logger.debug(type: "fetch_html", url: url)
+      sleep 1
       html = OpenURI.open_uri(url, &:read)
       Nokogiri.HTML5(html)
     end
 
     def fetch_json(url)
       logger.debug(type: "fetch_json", url: url)
+      sleep 1
       json = OpenURI.open_uri(url, &:read)
       JSON.parse(json)
     end

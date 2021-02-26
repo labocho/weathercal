@@ -65,7 +65,7 @@ module Weathercal
               description << "#{f[:mintemp]}℃/#{f[:maxtemp]}℃"
             end
             description << weather_text(f[:weather])
-            description << "(☂#{f[:rain]})"
+            description << "(☂#{f[:rain]}%)"
             e.description = description.join(" ")
           end
         end
