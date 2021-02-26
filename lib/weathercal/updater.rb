@@ -55,14 +55,14 @@ module Weathercal
 
       def fetch_html(url)
         logger.debug(type: "fetch_html", url: url)
-        sleep 1
+        sleep 0.1
         html = OpenURI.open_uri(url, &:read)
         Nokogiri.HTML5(html)
       end
 
       def fetch_json(url)
         logger.debug(type: "fetch_json", url: url)
-        sleep 1
+        sleep 0.1
         json = OpenURI.open_uri(url, &:read)
         JSON.parse(json)
       end
