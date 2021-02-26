@@ -11,8 +11,8 @@
   <p>通常は地名をクリック / タップするとカレンダーアプリに追加できます (すこし反応に時間がかかるかも...)。</p>
   <p>うまく行かない場合は "iCal" のリンクを右クリック/タップ長押しして URL をコピーし、カレンダーアプリでカレンダーを追加してください。</p>
   <ul>
-    <%- locations.each do |location| -%>
-    <li><a href="webcal://weathercal.penguinlab.jp/<%= u(location) %>.ics"><%= location %></a> (<a href="/<%= u(location) %>.ics">iCal</a>)</li>
+    <%- point_names.each do |point_name| -%>
+    <li><a href="webcal://weathercal.penguinlab.jp/<%= u(point_name) %>.ics"><%= point_name %></a> (<a href="/<%= u(point_name) %>.ics">iCal</a>)</li>
     <%- end -%>
   </ul>
   <p>不具合は <a href="https://github.com/labocho/weathercal/issues">GitHub issues</a> でご報告ください。</p>
