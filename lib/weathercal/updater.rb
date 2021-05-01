@@ -37,8 +37,8 @@ module Weathercal
         url = "https://www.jma.go.jp/bosai/#pattern=forecast&area_type=offices&area_code=011000"
         doc = fetch_html(url)
         doc.css("script").each do |script|
-          next unless script.text["Const.TELOPS"]
-          next unless script.text =~ /Const\.TELOPS=(\{.+?\})/
+          next unless script.text["E={TELOPS:"]
+          next unless script.text =~ /E=\{TELOPS:(\{.+?\})/
 
           json = $~.captures[0].gsub(/(\d+):/) { %("#{$1}":) }
           weather_codes = JSON.parse(json)
